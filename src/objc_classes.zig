@@ -42,11 +42,26 @@ fn registerStatusBarDelegate() void {
     var cls = objc.allocateClassPair(NSObject, "BWStatusBarDelegate").?;
     _ = cls.addMethod("retile:", statusBarRetile);
     _ = cls.addMethod("quit:", statusBarQuit);
+    _ = cls.addMethod("openConfigFile:", openConfig);
+    _ = cls.addMethod("nextWorkspace:", statusBarNextWorkspace);
+    _ = cls.addMethod("prevWorkspace:", statusBarPrevWorkspace);
     objc.registerClassPair(cls);
 }
 
 fn statusBarRetile(_: c.id, _: c.SEL, _: c.id) callconv(.c) void {
     main.bw_retile();
+}
+
+fn openConfig(_: c.id, _: c.SEL, _: c.id) callconv(.c) void {
+    main.openConfigFile();
+}
+
+fn statusBarNextWorkspace(_: c.id, _: c.SEL, _: c.id) callconv(.c) void {
+    main.nextWorkspace();
+}
+
+fn statusBarPrevWorkspace(_: c.id, _: c.SEL, _: c.id) callconv(.c) void {
+    main.prevWorkspace();
 }
 
 fn statusBarQuit(_: c.id, _: c.SEL, _: c.id) callconv(.c) void {

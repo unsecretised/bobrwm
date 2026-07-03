@@ -37,6 +37,34 @@ pub fn init() void {
     retile_item.msgSend(void, "setTarget:", .{delegate});
     menu.msgSend(void, "addItem:", .{retile_item});
 
+    const open_config_item = NSMenuItem.msgSend(objc.Object, "alloc", .{})
+        .msgSend(objc.Object, "initWithTitle:action:keyEquivalent:", .{
+        nsString("Open Config File"), objc.sel("openConfigFile:"), empty,
+    });
+    open_config_item.msgSend(void, "setTarget:", .{delegate});
+    menu.msgSend(void, "addItem:", .{open_config_item});
+
+    // Separator
+    menu.msgSend(void, "addItem:", .{
+        NSMenuItem.msgSend(objc.Object, "separatorItem", .{}),
+    });
+
+    // Next Workspace
+    const next_workspace = NSMenuItem.msgSend(objc.Object, "alloc", .{})
+        .msgSend(objc.Object, "initWithTitle:action:keyEquivalent:", .{
+        nsString("Next Workspace"), objc.sel("nextWorkspace:"), empty,
+    });
+    next_workspace.msgSend(void, "setTarget:", .{delegate});
+    menu.msgSend(void, "addItem:", .{next_workspace});
+
+    // Prev Workspace
+    const prev_workspace = NSMenuItem.msgSend(objc.Object, "alloc", .{})
+        .msgSend(objc.Object, "initWithTitle:action:keyEquivalent:", .{
+        nsString("Prev Workspace"), objc.sel("prevWorkspace:"), empty,
+    });
+    prev_workspace.msgSend(void, "setTarget:", .{delegate});
+    menu.msgSend(void, "addItem:", .{prev_workspace});
+
     // Separator
     menu.msgSend(void, "addItem:", .{
         NSMenuItem.msgSend(objc.Object, "separatorItem", .{}),

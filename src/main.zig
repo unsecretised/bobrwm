@@ -21,6 +21,8 @@ const launchd = @import("launchd.zig");
 const osutil = @import("osutil.zig");
 const objc_classes = @import("objc_classes.zig");
 
+var g_config_path: ?[]const u8 = null;
+
 extern fn _AXUIElementGetWindow(element: c.AXUIElementRef, wid: *u32) c.AXError;
 
 /// Monotonic wall clock in nanoseconds. Re-exported from osutil so existing
@@ -2176,7 +2178,18 @@ pub fn main(init: std.process.Init.Minimal) !void {
     // -- Config --
     var config_arena = std.heap.ArenaAllocator.init(g_allocator);
     defer config_arena.deinit();
-    g_config = config_mod.load(config_arena.allocator(), cli.configPath(result));
+    const config_path = cli.configPath(result);
+    const home = init.environ.getPosix("HOME") orelse "/tmp";
+
+    g_config_path = config_path orelse try std.fs.path.joinZ(
+        g_allocator,
+        &.{ home, ".config/bobrwm/config.zon", "" },
+    );
+
+    defer if (config_path == null) {
+        if (g_config_path) |p| g_allocator.free(p);
+    };
+    g_config = config_mod.load(config_arena.allocator(), config_path);
     g_bsp_split_mode = g_config.bsp_split;
     g_config.applyKeybinds();
 
@@ -2766,6 +2779,29 @@ fn retile() void {
     }
 }
 
+pub fn nextWorkspace() void {
+    switchAdjacentWorkspace(.next);
+}
+
+pub fn openConfigFile() void {
+    const path = g_config_path orelse "~/.config/bobrwm/config.zon";
+    openFilePath(path);
+}
+
+fn openFilePath(path: []const u8) void {
+    const NSWorkspace = objc.getClass("NSWorkspace") orelse return;
+    const NSURL = objc.getClass("NSURL") orelse return;
+    const workspace = NSWorkspace.msgSend(objc.Object, "sharedWorkspace", .{});
+    if (workspace.value == null) return;
+    const NSString = objc.getClass("NSString") orelse return;
+    const ns_path = NSString.msgSend(objc.Object, "stringWithUTF8String:", .{path.ptr});
+    const url = NSURL.msgSend(objc.Object, "fileURLWithPath:", .{ns_path});
+    if (url.value == null) return;
+    _ = workspace.msgSend(bool, "openURL:", .{url});
+}
+pub fn prevWorkspace() void {
+    switchAdjacentWorkspace(.previous);
+}
 // Event handling
 
 fn handleEvent(ev: *const event_mod.Event) void {
