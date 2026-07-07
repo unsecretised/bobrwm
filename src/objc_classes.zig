@@ -45,6 +45,7 @@ fn registerStatusBarDelegate() void {
     _ = cls.addMethod("openConfigFile:", openConfig);
     _ = cls.addMethod("nextWorkspace:", statusBarNextWorkspace);
     _ = cls.addMethod("prevWorkspace:", statusBarPrevWorkspace);
+    _ = cls.addMethod("switchToWorkspace:", statusBarSwitchToWorkspace);
     objc.registerClassPair(cls);
 }
 
@@ -90,6 +91,14 @@ fn notificationApp(note_id: c.id) objc.Object {
     const user_info = note.msgSend(objc.Object, "userInfo", .{});
     const key: objc.Object = .{ .value = NSWorkspaceApplicationKey };
     return user_info.msgSend(objc.Object, "objectForKey:", .{key});
+}
+
+fn statusBarSwitchToWorkspace(_: c.id, _: c.SEL, sender_id: c.id) callconv(.c) void {
+    const sender: objc.Object = .{ .value = sender_id };
+    const tag = sender.msgSend(i64, "tag", .{});
+    if (tag > 0 and tag <= 255) {
+        main.switchWorkspace(@intCast(tag));
+    }
 }
 
 fn observerAppLaunched(_: c.id, _: c.SEL, note_id: c.id) callconv(.c) void {

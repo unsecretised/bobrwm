@@ -1167,7 +1167,7 @@ var g_ring_lock: c.os_unfair_lock_s = .{ ._os_unfair_lock_opaque = 0 };
 var g_sky: ?skylight.SkyLight = null;
 var g_allocator: std.mem.Allocator = undefined;
 var g_store: window_mod.WindowStore = undefined;
-var g_workspaces: workspace_mod.WorkspaceManager = undefined;
+pub var g_workspaces: workspace_mod.WorkspaceManager = undefined;
 var g_layout_roots: [workspace_mod.max_workspaces]?layout.Node = undefined;
 var g_displays: [workspace_mod.max_displays]DisplayInfo = undefined;
 var g_display_count: usize = 0;
@@ -4900,7 +4900,7 @@ fn resolveWorkspace(pid: i32, display_id: u32) *workspace_mod.Workspace {
 
 // Workspace switching
 
-fn switchWorkspace(target_id: u8) void {
+pub fn switchWorkspace(target_id: u8) void {
     const target_ws = g_workspaces.get(target_id) orelse return;
 
     // If target is already visible on some display, just focus there.

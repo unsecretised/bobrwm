@@ -6,6 +6,8 @@
 const std = @import("std");
 const objc = @import("objc");
 
+const main = @import("main.zig");
+
 const log = std.log.scoped(.statusbar);
 
 var g_button: objc.Object = undefined;
@@ -65,7 +67,34 @@ pub fn init() void {
     prev_workspace.msgSend(void, "setTarget:", .{delegate});
     menu.msgSend(void, "addItem:", .{prev_workspace});
 
-    // Separator
+    const workspaces_item = NSMenuItem.msgSend(objc.Object, "alloc", .{})
+        .msgSend(objc.Object, "initWithTitle:action:keyEquivalent:", .{
+        nsString("Workspaces"), @as(?*anyopaque, null), empty,
+    });
+
+    const submenu = NSMenu.msgSend(objc.Object, "alloc", .{}).msgSend(objc.Object, "initWithTitle:", .{nsString("Workspaces")});
+
+    for (main.g_workspaces.workspaces) |workspace| {
+        // Build a label like "[1] home" or "2"
+        var label_buf: [64]u8 = undefined;
+        const label: [:0]u8 = if (workspace.name.len > 0)
+            std.fmt.bufPrintZ(&label_buf, "Workspace {d}: {s}", .{ workspace.id, workspace.name }) catch continue
+        else
+            std.fmt.bufPrintZ(&label_buf, "Workspace {d}", .{workspace.id}) catch continue;
+
+        const sub_item = NSMenuItem.msgSend(objc.Object, "alloc", .{})
+            .msgSend(objc.Object, "initWithTitle:action:keyEquivalent:", .{
+            nsString(label.ptr), objc.sel("switchToWorkspace:"), empty,
+        });
+        sub_item.msgSend(void, "setTarget:", .{delegate});
+        // Pass the workspace ID as the item's tag so the delegate can read it
+        sub_item.msgSend(void, "setTag:", .{@as(i64, workspace.id)});
+        submenu.msgSend(void, "addItem:", .{sub_item});
+    } // Separator
+
+    workspaces_item.msgSend(void, "setSubmenu:", .{submenu});
+    menu.msgSend(void, "addItem:", .{workspaces_item});
+
     menu.msgSend(void, "addItem:", .{
         NSMenuItem.msgSend(objc.Object, "separatorItem", .{}),
     });
