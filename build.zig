@@ -163,6 +163,8 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
         .link_libc = true,
     });
+    // config.zig reaches osutil.appBundleId, which uses the objc module.
+    swipe_config_mod.addImport("objc", objc_dep.module("objc"));
 
     const swipe_mod = b.createModule(.{
         .root_source_file = b.path("packages/bobrwm-swipe/src/main.zig"),
@@ -266,6 +268,44 @@ pub fn build(b: *std.Build) !void {
 
     const run_tiling_tests = b.addRunArtifact(tiling_tests);
 
+    // workspace.zig is pure Zig (window.zig types only) as well.
+    const workspace_test_mod = b.createModule(.{
+        .root_source_file = b.path("src/workspace.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const workspace_tests = b.addTest(.{
+        .name = "workspace-tests",
+        .root_module = workspace_test_mod,
+    });
+
+    const run_workspace_tests = b.addRunArtifact(workspace_tests);
+
+    // dim.zig draws overlay panels via zig-objc and imports config.zig (needs
+    // libc via osutil), so its test module needs the objc import plus AppKit /
+    // CoreGraphics linkage and SDK paths, like the swipe test module.
+    const dim_test_mod = b.createModule(.{
+        .root_source_file = b.path("src/dim.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    dim_test_mod.addImport("objc", objc_dep.module("objc"));
+    dim_test_mod.linkFramework("AppKit", .{});
+    dim_test_mod.linkFramework("CoreGraphics", .{});
+    dim_test_mod.linkFramework("CoreFoundation", .{});
+    dim_test_mod.addSystemFrameworkPath(.{ .cwd_relative = sdk_frameworks });
+    dim_test_mod.addSystemIncludePath(.{ .cwd_relative = sdk_include });
+    dim_test_mod.addLibraryPath(.{ .cwd_relative = sdk_lib });
+
+    const dim_tests = b.addTest(.{
+        .name = "dim-tests",
+        .root_module = dim_test_mod,
+    });
+
+    const run_dim_tests = b.addRunArtifact(dim_tests);
+
     const swipe_test_mod = b.createModule(.{
         .root_source_file = b.path("packages/bobrwm-swipe/src/main.zig"),
         .target = target,
@@ -296,5 +336,7 @@ pub fn build(b: *std.Build) !void {
     test_step.dependOn(&run_ipc_tests.step);
     test_step.dependOn(&run_tabgroup_tests.step);
     test_step.dependOn(&run_tiling_tests.step);
+    test_step.dependOn(&run_workspace_tests.step);
+    test_step.dependOn(&run_dim_tests.step);
     test_step.dependOn(&run_swipe_tests.step);
 }

@@ -18,11 +18,35 @@ pub const Window = struct {
     workspace_id: u8,
     display_id: u32,
 
+    /// Last on-screen frame of a floating window, captured before it is parked
+    /// off-screen on workspace hide. Restored when the workspace is shown again;
+    /// tiled windows get their geometry from BSP instead, so this stays null.
+    float_frame: ?Frame = null,
+
     pub const Frame = struct {
         x: f64,
         y: f64,
         width: f64,
         height: f64,
+
+        /// 1px tolerance absorbs sub-pixel rounding from CG/AX, avoiding
+        /// redundant AX SetAttributeValue calls.
+        pub const tolerance: f64 = 1.0;
+
+        /// Compare frames within a tolerance.
+        pub fn approxEqual(self: Frame, other: Frame, tol: f64) bool {
+            return @abs(self.x - other.x) <= tol and
+                @abs(self.y - other.y) <= tol and
+                @abs(self.width - other.width) <= tol and
+                @abs(self.height - other.height) <= tol;
+        }
+
+        /// Compare only size within a tolerance. When true, a reposition needs
+        /// no AXSize write, so callers can move without the resize flash.
+        pub fn sizeApproxEqual(self: Frame, other: Frame, tol: f64) bool {
+            return @abs(self.width - other.width) <= tol and
+                @abs(self.height - other.height) <= tol;
+        }
     };
 };
 
